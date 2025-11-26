@@ -2,1080 +2,816 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AlgoCanvas – Sorting Lab</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RADIX // The Sorting Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-page: #020617;
-      --bg-shell: #020617;
-      --bg-surface: #020617;
-      --bg-elevated: #020617;
-      --border-subtle: rgba(148, 163, 184, 0.25);
-      --border-strong: rgba(51, 65, 85, 0.9);
-      --text-main: #e5e7eb;
-      --text-muted: #9ca3af;
-      --accent: #22c55e;
-      --accent-soft: rgba(34, 197, 94, 0.12);
-      --accent-strong: #16a34a;
-      --danger: #f97316;
-      --warn: #eab308;
-      --info: #38bdf8;
-      --radius-lg: 20px;
-      --radius-md: 999px;
-      --shadow-strong: 0 30px 80px rgba(0, 0, 0, 0.75);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Poppins",
-        sans-serif;
+      /* Theme: Deep Slate & Electric Indigo */
+      --bg-app: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-surface: #334155;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      --accent-primary: #6366f1; /* Indigo 500 */
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      
+      /* Semantic Visualization Colors */
+      --color-bar: #cbd5e1;
+      --color-compare: #f59e0b; /* Amber */
+      --color-swap: #ef4444;    /* Red */
+      --color-sorted: #10b981;  /* Emerald */
+      
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --font-ui: 'Inter', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
 
     body {
-      margin: 0;
-      background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #000 100%);
+      background-color: var(--bg-app);
       color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
-    }
-
-    .app-shell {
-      width: 100%;
-      max-width: 1120px;
-      background: rgba(15, 23, 42, 0.96);
-      border-radius: 28px;
-      padding: 18px 18px 16px;
-      box-shadow: var(--shadow-strong);
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(18px);
+      font-family: var(--font-ui);
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      overflow: hidden;
     }
 
-    /* Top bar */
-
-    .topbar {
+    /* --- 1. Header --- */
+    header {
+      height: 64px;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 4px 6px 10px;
-      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
-      gap: 12px;
+      background: var(--bg-app);
+      flex-shrink: 0;
+      z-index: 10;
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-mark {
-      width: 30px;
-      height: 30px;
-      border-radius: 10px;
-      background: radial-gradient(circle at 20% 0%, #bbcdc2 0, #5e8e8a 55%, #071140 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-    }
-
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .brand-name {
-      font-size: 1rem;
+      font-size: 1.15rem;
       font-weight: 800;
-      letter-spacing: 0.04em;
-     
-    }
-
-    .brand-sub {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .topbar-right {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
+      gap: 0.75rem;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
     }
-
-    .pill {
-      padding: 4px 10px;
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(148, 163, 184, 0.55);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      font-size: 0.7rem;
-      white-space: nowrap;
-    }
-
-    .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 0 5px var(--accent-soft);
-    }
-
-    /* Layout main */
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(260px, 1.2fr);
-      gap: 14px;
-      align-items: stretch;
-    }
-
-    .panel {
-      background: var(--bg-elevated);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border-strong);
-      padding: 12px 12px 10px;
-    }
-
-    /* Controls */
-
-    .controls {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr);
-      gap: 8px 14px;
-      align-items: center;
-      margin-bottom: 12px;
-      font-size: 0.85rem;
-      padding: 4px 2px 8px;
-    }
-
-    .controls-left,
-    .controls-right {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 10px;
-      align-items: center;
-    }
-
-    .label {
-      color: var(--text-muted);
-      font-size: 0.78rem;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      min-width: 150px;
-    }
-
-    button {
-      padding: 7px 15px;
-      border-radius: var(--radius-md);
-      border: none;
-      font-size: 0.85rem;
+    
+    .brand-tag {
       font-weight: 500;
-      cursor: pointer;
-      background: var(--accent);
-      color: #02101a;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.15s ease,
-        background 0.1s ease;
-      white-space: nowrap;
+      color: var(--text-muted);
+      font-size: 0.8em;
+      background: rgba(255,255,255,0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
     }
 
-    button.secondary {
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .version-tag {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-right: 1rem;
+      font-family: var(--font-code);
+      opacity: 0.6;
+    }
+
+    .btn-icon {
       background: transparent;
-      color: var(--text-main);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      box-shadow: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-muted);
+      width: 36px; height: 36px;
+      border-radius: 8px; /* Slightly squarer for 'Engine' feel */
+      display: grid; place-items: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { color: var(--text-main); border-color: var(--text-main); background: rgba(255,255,255,0.05); }
+
+    /* --- 2. Layout (Grid) --- */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr; /* Sidebar Fixed | Stage Flex */
+      overflow: hidden;
     }
 
-    button.secondary:hover:not(:disabled) {
-      background: rgba(15, 23, 42, 0.9);
-      box-shadow: none;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 22px rgba(34, 197, 94, 0.38);
-      background: var(--accent-strong);
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-      box-shadow: none;
-    }
-
-    select {
-      padding: 6px 10px;
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: #020617;
-      color: var(--text-main);
-      font-size: 0.8rem;
-      outline: none;
-      min-width: 160px;
-    }
-
-    .slider-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .slider-group input[type="range"] {
-      accent-color: var(--accent);
-    }
-
-    #size-value,
-    #speed-value {
-      min-width: 40px;
-      text-align: right;
-    }
-
-    /* Visualizer */
-
-    .visualizer {
+    /* --- Sidebar --- */
+    .sidebar {
+      background: var(--bg-panel);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 1.5rem;
+      overflow-y: auto;
+      z-index: 5;
     }
 
-    .viz-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      padding: 0 2px;
+    .control-group { display: flex; flex-direction: column; gap: 0.6rem; }
+    
+    .label-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
     }
 
-    .viz-title-row span strong {
+    /* Form Elements */
+    select {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid rgba(255,255,255,0.1);
       color: var(--text-main);
-      font-weight: 500;
+      padding: 0.8rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: var(--font-ui);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em;
+    }
+    select:focus { border-color: var(--accent-primary); }
+
+    /* Custom Slider */
+    input[type="range"] {
+      width: 100%; height: 6px; background: var(--bg-surface); border-radius: 3px; appearance: none; cursor: pointer; margin-top: 6px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none; width: 18px; height: 18px; background: var(--accent-primary); border-radius: 50%; border: 2px solid var(--bg-panel); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); transition: 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
+
+    /* Complexity Card */
+    .complexity-card {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+    }
+    .complexity-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+    .complexity-row:last-child { margin-bottom: 0; }
+    .big-o { font-family: var(--font-code); color: var(--color-compare); font-weight: 500; }
+
+    /* Buttons */
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    
+    button.btn {
+      padding: 0.9rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform 0.1s, opacity 0.2s, background 0.2s;
+    }
+    button.btn:active { transform: scale(0.98); }
+    button.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent-primary); color: white; box-shadow: 0 4px 12px var(--accent-glow); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    
+    .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid rgba(255,255,255,0.05); }
+    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+    
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: #fca5a5; width: 100%; margin-top: auto; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.25); }
+
+    /* --- 3. Stage Area --- */
+    .stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 2.5rem 2.5rem;
+      overflow: hidden;
     }
 
-    .bars-frame {
-      padding: 10px 6px 8px;
-      border-radius: 16px;
-      background: radial-gradient(circle at 0 0, #0b1120 0, #020617 60%, #000 100%);
-      border: 1px solid rgba(30, 64, 175, 0.35);
+    .status-badge {
+      position: absolute; top: 1.5rem; left: 2.5rem;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 6px 14px; border-radius: 20px;
+      background: rgba(255,255,255,0.05); color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.05);
+      backdrop-filter: blur(4px);
+      transition: 0.3s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+    
+    .status-badge.active { border-color: var(--accent-primary); color: var(--accent-primary); background: rgba(99, 102, 241, 0.1); }
+    .status-badge.active .status-dot { background: var(--accent-primary); box-shadow: 0 0 8px var(--accent-primary); }
+
+    .metrics {
+      position: absolute; top: 1.5rem; right: 2.5rem;
+      display: flex; gap: 0.75rem;
+      font-family: var(--font-code); font-size: 0.8rem;
+    }
+    .metric-pill {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 12px; border-radius: 6px;
+      min-width: 80px; text-align: center;
     }
 
-    .bars {
-      height: 280px;
+    .bars-container {
+      flex: 1;
       display: flex;
       align-items: flex-end;
-      gap: 3px;
-      overflow: hidden;
+      gap: 2px;
+      margin-top: 3.5rem;
     }
 
     .bar {
       flex: 1;
-      border-radius: 7px 7px 0 0;
-      background: #22c55e;
-      transition: height 0.11s ease, transform 0.11s ease, background 0.11s ease;
+      background: var(--color-bar);
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.1s ease, background-color 0.1s;
     }
+    
+    /* Semantic States */
+    .bar.compare { background: var(--color-compare) !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); z-index: 10; }
+    .bar.swap { background: var(--color-swap) !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); z-index: 10; }
+    .bar.sorted { background: var(--color-sorted) !important; opacity: 0.8; }
 
-    .bar.compare {
-      background: #eab308;
-    }
-
-    .bar.swap {
-      background: #f97316;
-    }
-
-    .bar.sorted {
-      background: #38bdf8;
-    }
-
-    .legend {
-      display: flex;
-      gap: 10px;
-      font-size: 0.74rem;
-      color: var(--text-muted);
-      padding: 0 2px 2px;
-    }
-
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-    }
-
-    .legend-dot.compare {
-      background: #eab308;
-    }
-
-    .legend-dot.swap {
-      background: #f97316;
-    }
-
-    .legend-dot.sorted {
-      background: #38bdf8;
-    }
-
-    /* Status & metrics */
-
-    .status-block {
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px solid rgba(30, 41, 59, 0.9);
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-
-    #status {
+    /* --- 4. Modal (Instructions) --- */
+    dialog {
+      background: rgba(15, 23, 42, 0.95);
       color: var(--text-main);
-      font-size: 0.82rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      max-width: 480px;
+      width: 90%;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      margin: auto;
     }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); }
+    
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .modal-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
+    .modal-body { font-size: 0.95rem; line-height: 1.6; color: var(--text-muted); }
+    .modal-list { margin: 1rem 0; padding-left: 1.2rem; }
+    .modal-list li { margin-bottom: 0.5rem; }
+    
+    .legend-inline { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 
-    .complexity {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 8px;
-    }
+    .modal-footer { margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; align-items: center; }
+    .btn-text { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; text-decoration: underline; }
 
-    .complexity span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .complexity span:nth-child(1) {
-      border-color: rgba(34, 197, 94, 0.5);
-    }
-
-    .complexity span:nth-child(2) {
-      border-color: rgba(59, 130, 246, 0.5);
-    }
-
-    .complexity span:nth-child(3) {
-      border-color: rgba(248, 113, 113, 0.6);
-    }
-
-    .stats {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 170px;
-      align-items: flex-end;
-    }
-
-    .stats-title {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
-
-    .stats-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .stats-row span {
-      white-space: nowrap;
-      font-size: 0.8rem;
-      color: var(--text-main);
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(55, 65, 81, 0.9);
-    }
-
-    /* Side panel */
-
-    .side-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 100%;
-    }
-
-    .side-block {
-      border-radius: 14px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      padding: 10px 12px;
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), #020617);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .side-title {
-      font-size: 0.82rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-    }
-
-    .side-body {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    .side-body strong {
-      color: var(--text-main);
-      font-weight: 500;
-    }
-
-    .side-list {
-      margin: 0;
-      padding-left: 16px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .side-list li {
-      margin-bottom: 3px;
-    }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-      font-size: 0.78rem;
-    }
-
-    .summary-item {
-      padding: 4px 6px;
-      border-radius: 10px;
-      border: 1px solid rgba(30, 64, 175, 0.35);
-      background: rgba(15, 23, 42, 0.8);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .summary-label {
-      color: var(--text-muted);
-    }
-
-    .summary-value {
-      color: var(--text-main);
-    }
-
-    .kbd-hint {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    kbd {
-      display: inline-block;
-      padding: 1px 4px;
-      border-radius: 4px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      font-size: 0.72rem;
-      background: #020617;
-      margin: 0 1px;
-    }
-
+    /* --- 5. Responsive Design --- */
     @media (max-width: 900px) {
-      .layout {
+      main {
         grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
       }
 
-      .side-section {
+      .sidebar {
+        border-right: none;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding: 1.25rem;
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 1rem;
+        max-height: 45vh; /* Limit height so stage is visible */
       }
 
-      .side-block {
-        flex: 1;
-        min-width: 240px;
-      }
-
-      .stats {
-        align-items: flex-start;
-      }
+      .control-group { flex: 1; min-width: 140px; }
+      .complexity-card { display: none; } 
+      .btn-danger { width: auto; margin-top: 0; }
+      .stage { padding: 1.5rem; }
+      .metrics { right: 1.5rem; top: 1rem; }
+      .status-badge { left: 1.5rem; top: 1rem; }
     }
 
-    @media (max-width: 640px) {
-      .app-shell {
-        padding: 16px 12px 12px;
-        border-radius: 20px;
-      }
-
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .controls {
-        grid-template-columns: 1fr;
-      }
-
-      .controls-left,
-      .controls-right {
-        justify-content: flex-start;
-      }
-
-      .bars {
-        height: 230px;
-      }
+    @media (max-width: 600px) {
+      .version-tag { display: none; }
+      .sidebar { display: grid; grid-template-columns: 1fr 1fr; }
+      .control-group:first-child { grid-column: 1 / -1; } 
+      .btn-grid { grid-column: 1 / -1; }
+      .btn-danger { grid-column: 1 / -1; }
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <!-- Top bar -->
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark">A</div>
-        <div class="brand-text">
-          <div class="brand-name">AlgoCanvas</div>
-          <div class="brand-sub">Interactive sorting lab</div>
-        </div>
+
+  <dialog id="intro-modal">
+    <div class="modal-header">
+      <div class="modal-title">Welcome to RADIX</div>
+      <button class="btn-icon" id="close-modal-x" style="border:none">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>RADIX</strong> is a high-performance sorting engine designed to build algorithmic intuition through visualization and sonification.</p>
+      <ul class="modal-list">
+        <li>Configure the <strong>Algorithm</strong> and <strong>Array Size</strong> on the control panel.</li>
+        <li>Enable sound to "hear" the efficiency of O(n log n).</li>
+        <li>Observe the metrics:</li>
+      </ul>
+      <div style="display:flex; gap:15px; margin-top:15px; font-size:0.85rem; font-weight:500;">
+        <div style="display:flex; align-items:center;"><span class="legend-inline" style="background:var(--color-compare)"></span>Compare</div>
+        <div style="display:flex; align-items:center;"><span class="legend-inline" style="background:var(--color-swap)"></span>Swap</div>
+        <div style="display:flex; align-items:center;"><span class="legend-inline" style="background:var(--color-sorted)"></span>Sorted</div>
       </div>
-      <div class="topbar-right">
-        <div class="pill">Sorting · Visual Tool</div>
-        <div class="dot"></div>
-        <span></span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-text" id="dont-show-again">Don't show again</button>
+      <button class="btn btn-primary" id="start-app">Initialize Engine</button>
+    </div>
+  </dialog>
+
+  <header>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      RADIX <span class="brand-tag">ENGINE</span>
+    </div>
+    <div class="header-actions">
+      <span class="version-tag">v2.3 stable</span>
+      <button class="btn-icon" id="btn-info" title="Instructions">?</button>
+      <button class="btn-icon" id="btn-sound" title="Toggle Sound">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="sidebar">
+      <div class="control-group">
+        <div class="label-row"><span>Algorithm</span></div>
+        <select id="algo-select">
+          <option value="quick">Quick Sort (Lomuto)</option>
+          <option value="merge">Merge Sort</option>
+          <option value="heap">Heap Sort</option>
+          <option value="insertion">Insertion Sort</option>
+          <option value="selection">Selection Sort</option>
+          <option value="bubble">Bubble Sort</option>
+        </select>
       </div>
-    </header>
 
-    <main class="layout">
-      <!-- Main panel -->
-      <section class="panel">
-        <!-- Controls -->
-        <div class="controls">
-          <div class="controls-left">
-            <button id="generate-btn" class="secondary">New Array</button>
+      <div class="complexity-card" id="complexity-info">
+        <div class="complexity-row"><span>Time (Avg)</span> <span class="big-o">Θ(n log n)</span></div>
+        <div class="complexity-row"><span>Space</span> <span class="big-o">O(log n)</span></div>
+      </div>
 
-            <div class="field">
-              <span class="label">Algorithm</span>
-              <select id="algo-select">
-                <option value="bubble">Bubble Sort</option>
-                <option value="selection">Selection Sort</option>
-                <option value="insertion">Insertion Sort</option>
-                <option value="quick">Quick Sort</option>
-              </select>
-            </div>
+      <div class="control-group">
+        <div class="label-row"><span>Array Size</span> <span id="size-val" style="color:var(--text-main)">50</span></div>
+        <input type="range" id="size-range" min="10" max="150" value="50">
+      </div>
 
-            <div class="field">
-              <span class="label">Array Type</span>
-              <select id="type-select">
-                <option value="random">Random</option>
-                <option value="nearly-sorted">Nearly Sorted</option>
-                <option value="reversed">Reversed</option>
-              </select>
-            </div>
-          </div>
+      <div class="control-group">
+        <div class="label-row"><span>Cycle Speed</span> <span id="speed-val" style="color:var(--text-main)">20ms</span></div>
+        <input type="range" id="speed-range" min="1" max="200" value="20" style="direction: rtl;">
+      </div>
 
-          <div class="controls-right">
-            <div class="field">
-              <span class="label">Array Size</span>
-              <div class="slider-group">
-                <input type="range" id="size-range" min="10" max="80" value="30" />
-                <span id="size-value" class="label">30</span>
-              </div>
-            </div>
+      <div class="btn-grid">
+        <button id="btn-shuffle" class="btn btn-secondary">Shuffle</button>
+        <button id="btn-play" class="btn btn-primary">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+          Run
+        </button>
+      </div>
+      
+      <button id="btn-reset" class="btn btn-danger" disabled>Stop / Reset</button>
+    </aside>
 
-            <div class="field">
-              <span class="label">Animation Speed</span>
-              <div class="slider-group">
-                <input type="range" id="speed-range" min="10" max="200" value="60" />
-                <span id="speed-value" class="label">60 ms</span>
-              </div>
-            </div>
+    <section class="stage">
+      <div class="status-badge" id="status-badge">
+        <div class="status-dot"></div>
+        <span id="status-text">Ready</span>
+      </div>
+      
+      <div class="metrics">
+        <div class="metric-pill">C: <span id="stat-comp" style="color:var(--color-compare)">0</span></div>
+        <div class="metric-pill">S: <span id="stat-swap" style="color:var(--color-swap)">0</span></div>
+      </div>
 
-            <button id="start-btn">Run Visualization</button>
-          </div>
-        </div>
+      <div class="bars-container" id="stage"></div>
+    </section>
+  </main>
 
-        <!-- Visualizer -->
-        <div class="visualizer">
-          <div class="viz-title-row">
-            <span>Current array · <strong id="layout-label">Random · 30 elements</strong></span>
-            <span class="kbd-hint">
-              Hint: tweak size &amp; type, then press <kbd>Run Visualization</kbd>
-            </span>
-          </div>
+<script>
+/** --------------------------------------------------------
+ * AUDIO ENGINE
+ * Synthesizes audio using Web Audio API
+ * -------------------------------------------------------- */
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+  }
 
-          <div class="bars-frame">
-            <div id="bars" class="bars"></div>
-          </div>
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
 
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-dot compare"></span> compare
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot swap"></span> swap
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot sorted"></span> sorted
-            </div>
-          </div>
+  toggle() {
+    this.enabled = !this.enabled;
+    return this.enabled;
+  }
 
-          <div class="status-block">
-            <div>
-              <div id="status">Ready.</div>
-              <div class="complexity" id="complexity"></div>
-            </div>
-            <div class="stats">
-              <div class="stats-title">Current run metrics</div>
-              <div class="stats-row">
-                <span id="comparisons-label">Comparisons: 0</span>
-                <span id="swaps-label">Swaps: 0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+  play(val, max, type = 'sine') {
+    if (!this.enabled || !this.ctx) return;
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
 
-      <!-- Side panel -->
-      <aside class="panel">
-        <div class="side-section">
-          <div class="side-block">
-            <div class="side-title">Run summary</div>
-            <div class="summary-grid">
-              <div class="summary-item">
-                <div class="summary-label">Algorithm</div>
-                <div class="summary-value" id="summary-algo">Bubble Sort</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">Array type</div>
-                <div class="summary-value" id="summary-type">Random</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">Size</div>
-                <div class="summary-value" id="summary-size">30</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">Last run</div>
-                <div class="summary-value" id="summary-status">Not run yet</div>
-              </div>
-            </div>
-          </div>
+    // Map value to frequency (Pentatonic-ish feel: 200Hz -> 800Hz)
+    const freq = 200 + ((val / max) * 600);
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    
+    // Envelope to avoid clicking
+    gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.08);
 
-          <div class="side-block">
-            <div class="side-title">How to read this</div>
-            <div class="side-body">
-              <strong>AlgoCanvas</strong> is a small lab to build intuition around
-              sorting:
-            </div>
-            <ul class="side-list">
-              <li>Use different array types to simulate best / worst cases.</li>
-              <li>Track comparisons vs swaps to see algorithm behaviour.</li>
-              <li>Relate the live metrics to the Big-O summary on the left.</li>
-            </ul>
-            <div class="side-body">
-              This project is intentionally “no framework” – just
-              <strong>HTML, CSS, JavaScript</strong> – to keep the logic transparent.
-            </div>
-          </div>
-        </div>
-      </aside>
-    </main>
-  </div>
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.08);
+  }
+}
 
-  <script>
-    // Small module pattern instead of globals to feel more "engineered"
-    (function () {
-      // -------------------
-      // State & DOM
-      // -------------------
-      const state = {
-        array: [],
-        isSorting: false,
-        delay: 60,
-        stats: { comparisons: 0, swaps: 0 },
-      };
-
-      const dom = {
-        bars: document.getElementById("bars"),
-        status: document.getElementById("status"),
-        complexity: document.getElementById("complexity"),
-        comparisons: document.getElementById("comparisons-label"),
-        swaps: document.getElementById("swaps-label"),
-        algoSelect: document.getElementById("algo-select"),
-        typeSelect: document.getElementById("type-select"),
-        sizeRange: document.getElementById("size-range"),
-        sizeValue: document.getElementById("size-value"),
-        speedRange: document.getElementById("speed-range"),
-        speedValue: document.getElementById("speed-value"),
-        generateBtn: document.getElementById("generate-btn"),
-        startBtn: document.getElementById("start-btn"),
-        layoutLabel: document.getElementById("layout-label"),
-        summaryAlgo: document.getElementById("summary-algo"),
-        summaryType: document.getElementById("summary-type"),
-        summarySize: document.getElementById("summary-size"),
-        summaryStatus: document.getElementById("summary-status"),
-      };
-
-      // -------------------
-      // Utilities
-      // -------------------
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-      function resetStats() {
-        state.stats.comparisons = 0;
-        state.stats.swaps = 0;
-        updateStatsDisplay();
-      }
-
-      function updateStatsDisplay() {
-        dom.comparisons.textContent = `Comparisons: ${state.stats.comparisons}`;
-        dom.swaps.textContent = `Swaps: ${state.stats.swaps}`;
-      }
-
-      function generateArray(size, type) {
-        const base = [];
-        for (let i = 0; i < size; i++) {
-          base.push(Math.floor(Math.random() * 95) + 5);
+/** --------------------------------------------------------
+ * ALGORITHMS (Generators)
+ * Decoupled logic using yield to pause execution per step
+ * -------------------------------------------------------- */
+const Algos = {
+  *bubble(arr) {
+    const n = arr.length;
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = 0; j < n - i - 1; j++) {
+        yield { type: 'compare', indices: [j, j + 1] };
+        if (arr[j] > arr[j + 1]) {
+          [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+          yield { type: 'swap', indices: [j, j + 1] };
         }
+      }
+      yield { type: 'sorted', index: n - 1 - i };
+    }
+    yield { type: 'sorted', index: 0 };
+  },
 
-        if (type === "random") return base;
+  *selection(arr) {
+    const n = arr.length;
+    for (let i = 0; i < n; i++) {
+      let min = i;
+      for (let j = i + 1; j < n; j++) {
+        yield { type: 'compare', indices: [min, j] };
+        if (arr[j] < arr[min]) min = j;
+      }
+      if (min !== i) {
+        [arr[i], arr[min]] = [arr[min], arr[i]];
+        yield { type: 'swap', indices: [i, min] };
+      }
+      yield { type: 'sorted', index: i };
+    }
+  },
 
-        const sorted = [...base].sort((a, b) => a - b);
+  *insertion(arr) {
+    for (let i = 1; i < arr.length; i++) {
+      let key = arr[i];
+      let j = i - 1;
+      while (j >= 0 && arr[j] > key) {
+        yield { type: 'compare', indices: [j, j+1] };
+        arr[j+1] = arr[j];
+        yield { type: 'overwrite', index: j+1, val: arr[j] };
+        j--;
+      }
+      arr[j+1] = key;
+      yield { type: 'overwrite', index: j+1, val: key };
+    }
+    for(let i=0; i<arr.length; i++) yield { type: 'sorted', index: i };
+  },
 
-        if (type === "nearly-sorted") {
-          const swaps = Math.max(1, Math.floor(size * 0.08));
-          for (let k = 0; k < swaps; k++) {
-            const i = Math.floor(Math.random() * size);
-            const j = Math.floor(Math.random() * size);
-            [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
-          }
-          return sorted;
+  *quick(arr) {
+    yield* this._quickRec(arr, 0, arr.length - 1);
+    for(let i=0; i<arr.length; i++) yield { type: 'sorted', index: i };
+  },
+  *_quickRec(arr, low, high) {
+    if (low < high) {
+      const pi = yield* this._part(arr, low, high);
+      yield* this._quickRec(arr, low, pi - 1);
+      yield* this._quickRec(arr, pi + 1, high);
+    }
+  },
+  *_part(arr, low, high) {
+    let pivot = arr[high];
+    let i = low - 1;
+    for (let j = low; j < high; j++) {
+      yield { type: 'compare', indices: [j, high] };
+      if (arr[j] < pivot) {
+        i++;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        yield { type: 'swap', indices: [i, j] };
+      }
+    }
+    [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+    yield { type: 'swap', indices: [i + 1, high] };
+    return i + 1;
+  },
+
+  *merge(arr) {
+    yield* this._mergeRec(arr, 0, arr.length-1);
+    for(let i=0; i<arr.length; i++) yield { type: 'sorted', index: i };
+  },
+  *_mergeRec(arr, l, r) {
+    if(l>=r) return;
+    const m = l + Math.floor((r-l)/2);
+    yield* this._mergeRec(arr, l, m);
+    yield* this._mergeRec(arr, m+1, r);
+    yield* this._mergeFunc(arr, l, m, r);
+  },
+  *_mergeFunc(arr, l, m, r) {
+    const n1 = m - l + 1, n2 = r - m;
+    let L = new Array(n1), R = new Array(n2);
+    for(let i=0; i<n1; i++) L[i] = arr[l+i];
+    for(let j=0; j<n2; j++) R[j] = arr[m+1+j];
+    
+    let i=0, j=0, k=l;
+    while(i<n1 && j<n2) {
+      yield { type: 'compare', indices: [l+i, m+1+j] };
+      if(L[i] <= R[j]) {
+        arr[k] = L[i]; yield { type: 'overwrite', index: k, val: L[i] }; i++;
+      } else {
+        arr[k] = R[j]; yield { type: 'overwrite', index: k, val: R[j] }; j++;
+      }
+      k++;
+    }
+    while(i<n1) { arr[k] = L[i]; yield { type: 'overwrite', index: k, val: L[i] }; i++; k++; }
+    while(j<n2) { arr[k] = R[j]; yield { type: 'overwrite', index: k, val: R[j] }; j++; k++; }
+  },
+
+  *heap(arr) {
+    const n = arr.length;
+    for (let i = Math.floor(n/2)-1; i>=0; i--) yield* this._heapify(arr, n, i);
+    for (let i = n-1; i>0; i--) {
+      [arr[0], arr[i]] = [arr[i], arr[0]];
+      yield { type: 'swap', indices: [0, i] };
+      yield { type: 'sorted', index: i };
+      yield* this._heapify(arr, i, 0);
+    }
+    yield { type: 'sorted', index: 0 };
+  },
+  *_heapify(arr, n, i) {
+    let lg = i, l = 2*i+1, r = 2*i+2;
+    if(l<n) { yield { type: 'compare', indices: [lg, l] }; if(arr[l]>arr[lg]) lg=l; }
+    if(r<n) { yield { type: 'compare', indices: [lg, r] }; if(arr[r]>arr[lg]) lg=r; }
+    if(lg!==i) {
+      [arr[i], arr[lg]] = [arr[lg], arr[i]];
+      yield { type: 'swap', indices: [i, lg] };
+      yield* this._heapify(arr, n, lg);
+    }
+  }
+};
+
+/** --------------------------------------------------------
+ * ENGINE CONTROLLER
+ * -------------------------------------------------------- */
+class RadixEngine {
+  constructor() {
+    this.dom = {
+      stage: document.getElementById('stage'),
+      algo: document.getElementById('algo-select'),
+      size: document.getElementById('size-range'),
+      speed: document.getElementById('speed-range'),
+      btnPlay: document.getElementById('btn-play'),
+      btnReset: document.getElementById('btn-reset'),
+      btnShuffle: document.getElementById('btn-shuffle'),
+      btnSound: document.getElementById('btn-sound'),
+      statusBadge: document.getElementById('status-badge'),
+      statusText: document.getElementById('status-text'),
+      comp: document.getElementById('stat-comp'),
+      swap: document.getElementById('stat-swap'),
+      complexity: document.getElementById('complexity-info'),
+      modal: document.getElementById('intro-modal')
+    };
+    
+    this.audio = new SoundEngine();
+    this.array = [];
+    this.speed = 20;
+    this.isRunning = false;
+    this.timer = null;
+    
+    // Metadata for Complexity UI
+    this.meta = {
+      bubble: { t: 'Θ(n²)', s: 'O(1)' },
+      selection: { t: 'Θ(n²)', s: 'O(1)' },
+      insertion: { t: 'Θ(n²)', s: 'O(1)' },
+      quick: { t: 'Θ(n log n)', s: 'O(log n)' },
+      merge: { t: 'Θ(n log n)', s: 'O(n)' },
+      heap: { t: 'Θ(n log n)', s: 'O(1)' }
+    };
+
+    this.init();
+  }
+
+  init() {
+    this.bindEvents();
+    this.handleModal();
+    this.updateMeta(); // Set initial complexity
+    this.reset();
+  }
+
+  handleModal() {
+    const skip = localStorage.getItem('radix_skip_intro');
+    if (!skip) {
+      this.dom.modal.showModal();
+    }
+    
+    document.getElementById('start-app').onclick = () => this.dom.modal.close();
+    document.getElementById('close-modal-x').onclick = () => this.dom.modal.close();
+    document.getElementById('btn-info').onclick = () => this.dom.modal.showModal();
+    document.getElementById('dont-show-again').onclick = () => {
+      localStorage.setItem('radix_skip_intro', 'true');
+      this.dom.modal.close();
+    };
+  }
+
+  bindEvents() {
+    this.dom.size.oninput = (e) => {
+      document.getElementById('size-val').textContent = e.target.value;
+      if (!this.isRunning) this.reset();
+    };
+    this.dom.speed.oninput = (e) => {
+      this.speed = parseInt(e.target.value);
+      document.getElementById('speed-val').textContent = this.speed + 'ms';
+    };
+    this.dom.algo.onchange = () => {
+      this.updateMeta();
+      if(this.isRunning) this.hardStop();
+    };
+    this.dom.btnShuffle.onclick = () => {
+      if(!this.isRunning) this.reset();
+    };
+    this.dom.btnPlay.onclick = () => {
+      if(!this.isRunning) this.start();
+    };
+    this.dom.btnReset.onclick = () => this.hardStop();
+    
+    this.dom.btnSound.onclick = () => {
+      const isOn = this.audio.toggle();
+      this.dom.btnSound.style.opacity = isOn ? '1' : '0.4';
+      if(isOn) this.audio.init(); 
+    };
+  }
+
+  updateMeta() {
+    const info = this.meta[this.dom.algo.value];
+    this.dom.complexity.innerHTML = `
+      <div class="complexity-row"><span>Time (Avg)</span> <span class="big-o">${info.t}</span></div>
+      <div class="complexity-row"><span>Space</span> <span class="big-o">${info.s}</span></div>
+    `;
+  }
+
+  updateStatus(text, active = false) {
+    this.dom.statusText.textContent = text;
+    active ? this.dom.statusBadge.classList.add('active') : this.dom.statusBadge.classList.remove('active');
+  }
+
+  // --- Logic ---
+
+  generateArray() {
+    const size = parseInt(this.dom.size.value);
+    this.array = [];
+    for (let i=0; i<size; i++) this.array.push(Math.floor(Math.random()*95)+5);
+    this.maxVal = Math.max(...this.array, 100);
+  }
+
+  draw(highlights = {}) {
+    if(this.dom.stage.childElementCount !== this.array.length) {
+      this.dom.stage.innerHTML = '';
+      this.array.forEach((val, i) => {
+        const d = document.createElement('div');
+        d.className = 'bar';
+        d.id = `b-${i}`;
+        d.style.height = `${(val/this.maxVal)*100}%`;
+        this.dom.stage.appendChild(d);
+      });
+    } else {
+      // Diff update
+      this.array.forEach((val, i) => {
+        const b = document.getElementById(`b-${i}`);
+        b.style.height = `${(val/this.maxVal)*100}%`;
+        b.className = 'bar'; 
+        if(highlights.cmp && highlights.cmp.includes(i)) b.classList.add('compare');
+        if(highlights.swp && highlights.swp.includes(i)) b.classList.add('swap');
+        if(highlights.srt === i) b.classList.add('sorted');
+      });
+    }
+  }
+
+  start() {
+    this.audio.init();
+    this.isRunning = true;
+    this.dom.btnPlay.disabled = true;
+    this.dom.btnShuffle.disabled = true;
+    this.dom.btnReset.disabled = false;
+    this.dom.algo.disabled = true;
+    this.updateStatus('Engine Running', true);
+
+    this.stats = { c: 0, s: 0 };
+    this.dom.comp.textContent = '0';
+    this.dom.swap.textContent = '0';
+
+    const algo = this.dom.algo.value;
+    this.gen = Algos[algo].call(Algos, this.array);
+    this.animate();
+  }
+
+  animate() {
+    if(!this.isRunning) return;
+    
+    // Throttle via setTimeout, Render via requestAnimationFrame
+    this.timer = setTimeout(() => {
+      requestAnimationFrame(() => {
+        const { value, done } = this.gen.next();
+        if(done) {
+          this.finish();
+        } else {
+          this.handleStep(value);
+          this.animate();
         }
+      });
+    }, this.speed);
+  }
 
-        if (type === "reversed") {
-          return sorted.reverse();
-        }
+  handleStep(step) {
+    if(step.type === 'compare') {
+      this.stats.c++;
+      this.draw({ cmp: step.indices });
+      this.audio.play(this.array[step.indices[0]], this.maxVal, 'sine');
+    }
+    else if(step.type === 'swap') {
+      this.stats.s++;
+      this.draw({ swp: step.indices });
+      this.audio.play(this.array[step.indices[0]], this.maxVal, 'square');
+    }
+    else if(step.type === 'overwrite') {
+      this.draw({ swp: [step.index] });
+    }
+    else if(step.type === 'sorted') {
+      const b = document.getElementById(`b-${step.index}`);
+      if(b) b.classList.add('sorted');
+    }
+    
+    this.dom.comp.textContent = this.stats.c;
+    this.dom.swap.textContent = this.stats.s;
+  }
 
-        return base;
-      }
+  finish() {
+    this.hardStop();
+    this.updateStatus('Sequence Complete', false);
+    // Visual finish flourish
+    [...document.getElementsByClassName('bar')].forEach(b => b.classList.add('sorted'));
+  }
 
-      function renderArray(arr, highlights = {}) {
-        dom.bars.innerHTML = "";
-        const maxVal = Math.max(...arr, 100);
+  hardStop() {
+    clearTimeout(this.timer);
+    this.isRunning = false;
+    this.dom.btnPlay.disabled = false;
+    this.dom.btnShuffle.disabled = false;
+    this.dom.btnReset.disabled = true;
+    this.dom.algo.disabled = false;
+    this.updateStatus('Engine Ready', false);
+    this.draw(); 
+  }
 
-        arr.forEach((value, index) => {
-          const bar = document.createElement("div");
-          bar.className = "bar";
-          const height = (value / maxVal) * 100;
-          bar.style.height = height + "%";
+  reset() {
+    this.hardStop();
+    this.generateArray();
+    this.dom.stage.innerHTML = '';
+    this.draw();
+  }
+}
 
-          if (highlights.compare && highlights.compare.includes(index)) {
-            bar.classList.add("compare");
-          }
-          if (highlights.swap && highlights.swap.includes(index)) {
-            bar.classList.add("swap");
-          }
-          if (
-            typeof highlights.sortedIndex === "number" &&
-            index <= highlights.sortedIndex
-          ) {
-            bar.classList.add("sorted");
-          }
-
-          dom.bars.appendChild(bar);
-        });
-      }
-
-      function setStatus(text) {
-        dom.status.textContent = text;
-      }
-
-      function setComplexity(algo) {
-        let best = "";
-        let avg = "";
-        let worst = "";
-
-        switch (algo) {
-          case "bubble":
-            best = "Best: Ω(n)";
-            avg = "Avg: Θ(n²)";
-            worst = "Worst: O(n²)";
-            break;
-          case "selection":
-            best = "Best: Ω(n²)";
-            avg = "Avg: Θ(n²)";
-            worst = "Worst: O(n²)";
-            break;
-          case "insertion":
-            best = "Best: Ω(n)";
-            avg = "Avg: Θ(n²)";
-            worst = "Worst: O(n²)";
-            break;
-          case "quick":
-            best = "Best: Ω(n log n)";
-            avg = "Avg: Θ(n log n)";
-            worst = "Worst: O(n²)";
-            break;
-        }
-
-        dom.complexity.innerHTML = `
-          <span>${best}</span>
-          <span>${avg}</span>
-          <span>${worst}</span>
-        `;
-      }
-
-      function setControlsDisabled(disabled) {
-        state.isSorting = disabled;
-        dom.generateBtn.disabled = disabled;
-        dom.algoSelect.disabled = disabled;
-        dom.typeSelect.disabled = disabled;
-        dom.sizeRange.disabled = disabled;
-        dom.speedRange.disabled = disabled;
-        dom.startBtn.disabled = disabled;
-      }
-
-      function updateLayoutLabel() {
-        const type = dom.typeSelect.value.replace("-", " ");
-        const size = dom.sizeRange.value;
-        dom.layoutLabel.textContent = `${capitalize(type)} · ${size} elements`;
-      }
-
-      function updateSummaryAfterRun(success) {
-        const algoName =
-          dom.algoSelect.options[dom.algoSelect.selectedIndex].text || "";
-        const typeName =
-          dom.typeSelect.options[dom.typeSelect.selectedIndex].text || "";
-        const size = dom.sizeRange.value;
-
-        dom.summaryAlgo.textContent = algoName;
-        dom.summaryType.textContent = typeName;
-        dom.summarySize.textContent = size;
-        dom.summaryStatus.textContent = success
-          ? "Sorted successfully"
-          : "Run interrupted";
-      }
-
-      function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-      }
-
-      // -------------------
-      // Sorting algorithms (instrumented)
-      // -------------------
-      async function bubbleSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-          for (let j = 0; j < n - i - 1; j++) {
-            state.stats.comparisons++;
-            updateStatsDisplay();
-            renderArray(arr, { compare: [j, j + 1], sortedIndex: n - i });
-            await sleep(state.delay);
-            if (arr[j] > arr[j + 1]) {
-              state.stats.swaps++;
-              updateStatsDisplay();
-              [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-              renderArray(arr, { swap: [j, j + 1], sortedIndex: n - i });
-              await sleep(state.delay);
-            }
-          }
-        }
-        renderArray(arr, { sortedIndex: n - 1 });
-      }
-
-      async function selectionSort(arr) {
-        const n = arr.length;
-        for (let i = 0; i < n - 1; i++) {
-          let minIndex = i;
-          for (let j = i + 1; j < n; j++) {
-            state.stats.comparisons++;
-            updateStatsDisplay();
-            renderArray(arr, { compare: [minIndex, j], sortedIndex: i - 1 });
-            await sleep(state.delay);
-            if (arr[j] < arr[minIndex]) {
-              minIndex = j;
-            }
-          }
-          if (minIndex !== i) {
-            state.stats.swaps++;
-            updateStatsDisplay();
-            [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];
-            renderArray(arr, { swap: [i, minIndex], sortedIndex: i });
-            await sleep(state.delay);
-          }
-        }
-        renderArray(arr, { sortedIndex: n - 1 });
-      }
-
-      async function insertionSort(arr) {
-        const n = arr.length;
-        for (let i = 1; i < n; i++) {
-          let key = arr[i];
-          let j = i - 1;
-
-          while (j >= 0 && arr[j] > key) {
-            state.stats.comparisons++;
-            updateStatsDisplay();
-            arr[j + 1] = arr[j];
-            renderArray(arr, { compare: [j, j + 1], sortedIndex: i });
-            await sleep(state.delay);
-            j--;
-          }
-
-          if (j >= 0) {
-            state.stats.comparisons++;
-            updateStatsDisplay();
-          }
-
-          arr[j + 1] = key;
-          state.stats.swaps++;
-          updateStatsDisplay();
-          renderArray(arr, { swap: [j + 1], sortedIndex: i });
-          await sleep(state.delay);
-        }
-        renderArray(arr, { sortedIndex: n - 1 });
-      }
-
-      async function quickSortWrapper(arr) {
-        await quickSort(arr, 0, arr.length - 1);
-        renderArray(arr, { sortedIndex: arr.length - 1 });
-      }
-
-      async function quickSort(arr, low, high) {
-        if (low >= high) return;
-        const pivotIndex = await partition(arr, low, high);
-        await quickSort(arr, low, pivotIndex - 1);
-        await quickSort(arr, pivotIndex + 1, high);
-      }
-
-      async function partition(arr, low, high) {
-        const pivot = arr[high];
-        let i = low - 1;
-
-        for (let j = low; j < high; j++) {
-          state.stats.comparisons++;
-          updateStatsDisplay();
-          renderArray(arr, { compare: [j, high] });
-          await sleep(state.delay);
-          if (arr[j] < pivot) {
-            i++;
-            state.stats.swaps++;
-            updateStatsDisplay();
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-            renderArray(arr, { swap: [i, j] });
-            await sleep(state.delay);
-          }
-        }
-        state.stats.swaps++;
-        updateStatsDisplay();
-        [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
-        renderArray(arr, { swap: [i + 1, high] });
-        await sleep(state.delay);
-        return i + 1;
-      }
-
-      // -------------------
-      // Event handlers & init
-      // -------------------
-      function regenerate() {
-        const size = Number(dom.sizeRange.value);
-        const type = dom.typeSelect.value;
-        state.array = generateArray(size, type);
-        resetStats();
-        renderArray(state.array);
-        updateLayoutLabel();
-        setStatus(`Generated ${type.replace("-", " ")} array of size ${size}.`);
-      }
-
-      function attachEvents() {
-        dom.sizeRange.addEventListener("input", () => {
-          dom.sizeValue.textContent = dom.sizeRange.value;
-          if (!state.isSorting) {
-            regenerate();
-          }
-        });
-
-        dom.speedRange.addEventListener("input", () => {
-          state.delay = Number(dom.speedRange.value);
-          dom.speedValue.textContent = `${state.delay} ms`;
-        });
-
-        dom.typeSelect.addEventListener("change", () => {
-          if (!state.isSorting) {
-            regenerate();
-          }
-        });
-
-        dom.generateBtn.addEventListener("click", () => {
-          if (!state.isSorting) regenerate();
-        });
-
-        dom.startBtn.addEventListener("click", async () => {
-          if (state.isSorting) return;
-          setControlsDisabled(true);
-          const algo = dom.algoSelect.value;
-          setComplexity(algo);
-          resetStats();
-          updateLayoutLabel();
-
-          const algoLabel =
-            dom.algoSelect.options[dom.algoSelect.selectedIndex].text;
-          setStatus(`Running ${algoLabel}...`);
-          dom.summaryStatus.textContent = "Running…";
-
-          const arrCopy = state.array.slice();
-
-          try {
-            if (algo === "bubble") {
-              await bubbleSort(arrCopy);
-            } else if (algo === "selection") {
-              await selectionSort(arrCopy);
-            } else if (algo === "insertion") {
-              await insertionSort(arrCopy);
-            } else if (algo === "quick") {
-              await quickSortWrapper(arrCopy);
-            }
-            setStatus("Done. Array sorted.");
-            updateSummaryAfterRun(true);
-          } catch (e) {
-            console.error(e);
-            setStatus("Run interrupted due to an error.");
-            updateSummaryAfterRun(false);
-          } finally {
-            setControlsDisabled(false);
-          }
-        });
-      }
-
-      function init() {
-        dom.sizeValue.textContent = dom.sizeRange.value;
-        state.delay = Number(dom.speedRange.value);
-        dom.speedValue.textContent = `${state.delay} ms`;
-        setComplexity(dom.algoSelect.value);
-        resetStats();
-        regenerate();
-        attachEvents();
-      }
-
-      // Initialize immediately (script is at end of body)
-      init();
-    })();
-  </script>
+// Initialize
+window.onload = () => new RadixEngine();
+</script>
 </body>
 </html>
